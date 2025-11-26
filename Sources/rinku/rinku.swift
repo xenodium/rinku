@@ -28,7 +28,10 @@ struct LinkPreviewRenderer {
   static func main() {
     var arguments = Array(CommandLine.arguments.dropFirst())
     var cacheEnabled = true
-    var renderEnabled = true
+    var renderEnabled = false
+    var renderWidth: CGFloat = 300
+    var renderHeight: CGFloat = 150
+    var renderDelay: UInt64 = 500_000_000  // 500ms in nanoseconds
 
     if let index = arguments.firstIndex(of: "--no-cache") {
       cacheEnabled = false
@@ -38,45 +41,82 @@ struct LinkPreviewRenderer {
     if let index = arguments.firstIndex(of: "--render") {
       renderEnabled = true
       arguments.remove(at: index)
-    } else {
-      renderEnabled = false
+    }
+
+    if let index = arguments.firstIndex(of: "--width") {
+      arguments.remove(at: index)
+      if index < arguments.count, let width = Double(arguments[index]) {
+        renderWidth = CGFloat(width)
+        arguments.remove(at: index)
+      }
+    }
+
+    if let index = arguments.firstIndex(of: "--height") {
+      arguments.remove(at: index)
+      if index < arguments.count, let height = Double(arguments[index]) {
+        renderHeight = CGFloat(height)
+        arguments.remove(at: index)
+      }
+    }
+
+    if let index = arguments.firstIndex(of: "--render-delay") {
+      arguments.remove(at: index)
+      if index < arguments.count, let delayMs = UInt64(arguments[index]) {
+        renderDelay = delayMs * 1_000_000  // Convert ms to nanoseconds
+        arguments.remove(at: index)
+      }
     }
 
     guard !arguments.isEmpty else {
-      print("Usage: \(CommandLine.arguments[0]) [--no-cache] [--render] <URL>")
+      print(
+        "Usage: \(CommandLine.arguments[0]) [--no-cache] [--render] [--width N] [--height N] [--render-delay MS] <URL>"
+      )
       exit(1)
     }
 
     guard let url = URL(string: arguments[0]) else {
-      print("\(Response.failure(error: "Invalid URL").output())")
+      Response.error(message: "Invalid URL").output()
       exit(1)
     }
 
     Task { @MainActor in
-      await processLinkPreview(url: url, cacheEnabled: cacheEnabled, renderEnabled: renderEnabled)
+      await processLinkPreview(
+        url: url,
+        cacheEnabled: cacheEnabled,
+        renderEnabled: renderEnabled,
+        renderSize: CGSize(width: renderWidth, height: renderHeight),
+        renderDelay: renderDelay
+      )
     }
 
     RunLoop.current.run()
   }
 
   @MainActor
-  static func processLinkPreview(url: URL, cacheEnabled: Bool, renderEnabled: Bool) async {
+  static func processLinkPreview(
+    url: URL,
+    cacheEnabled: Bool,
+    renderEnabled: Bool,
+    renderSize: CGSize,
+    renderDelay: UInt64
+  ) async {
     if renderEnabled {
-      let cacheURL = cacheURL(prefix: "render-", for: url)
-
-      // Check if cached version exists
-      if cacheEnabled && FileManager.default.fileExists(atPath: cacheURL.path) {
-        Response.success(preview: cacheURL.path).output()
-        exit(0)
-      }
-
       do {
+        let cacheURL = try cacheURL(prefix: "render-", for: url)
+
+        // Check if cached version exists
+        if cacheEnabled && FileManager.default.fileExists(atPath: cacheURL.path) {
+          Response.preview(path: cacheURL.path).output()
+          exit(0)
+        }
+
         let metadata = try await fetchMetadataWithCache(for: url, cacheEnabled: cacheEnabled)
-        try await renderAndSave(metadata: metadata, to: cacheURL)
-        Response.success(preview: cacheURL.path).output()
+        try await renderAndSave(
+          metadata: metadata, to: cacheURL, size: renderSize, delay: renderDelay)
+        Response.preview(path: cacheURL.path).output()
         exit(0)
       } catch {
-        Response.failure(error: error.localizedDescription).output()
+        Response.error(message: error.localizedDescription).output()
         exit(1)
       }
     } else {
@@ -87,7 +127,7 @@ struct LinkPreviewRenderer {
         metadataResponse.output()
         exit(0)
       } catch {
-        Response.failure(error: error.localizedDescription).output()
+        Response.error(message: error.localizedDescription).output()
         exit(1)
       }
     }
@@ -99,34 +139,39 @@ struct LinkPreviewRenderer {
     var imagePath: String?
 
     if let imageProvider = metadata.imageProvider {
-      let imageCacheURL = cacheURL(prefix: "image-", for: url)
+      do {
+        let imageCacheURL = try cacheURL(prefix: "image-", for: url)
 
-      if cacheEnabled && FileManager.default.fileExists(atPath: imageCacheURL.path) {
-        imagePath = imageCacheURL.path
-      } else {
-        do {
-          let image = try await withCheckedThrowingContinuation {
-            (continuation: CheckedContinuation<NSImage?, Error>) in
-            imageProvider.loadObject(ofClass: NSImage.self) { (object, error) in
-              if let error = error {
-                continuation.resume(throwing: error)
-              } else {
-                continuation.resume(returning: object as? NSImage)
+        if cacheEnabled && FileManager.default.fileExists(atPath: imageCacheURL.path) {
+          imagePath = imageCacheURL.path
+        } else {
+          do {
+            let image = try await withCheckedThrowingContinuation {
+              (continuation: CheckedContinuation<NSImage?, Error>) in
+              imageProvider.loadObject(ofClass: NSImage.self) { (object, error) in
+                if let error = error {
+                  continuation.resume(throwing: error)
+                } else {
+                  continuation.resume(returning: object as? NSImage)
+                }
               }
             }
-          }
 
-          if let image = image,
-            let tiffData = image.tiffRepresentation,
-            let bitmap = NSBitmapImageRep(data: tiffData),
-            let pngData = bitmap.representation(using: .png, properties: [:])
-          {
-            try pngData.write(to: imageCacheURL)
-            imagePath = imageCacheURL.path
+            if let image = image,
+              let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let pngData = bitmap.representation(using: .png, properties: [:])
+            {
+              try pngData.write(to: imageCacheURL)
+              imagePath = imageCacheURL.path
+            }
+          } catch {
+            fputs(
+              "Warning: Failed to fetch or cache image: \(error.localizedDescription)\n", stderr)
           }
-        } catch {
-          // Ignore image fetch errors, continue without image
         }
+      } catch {
+        fputs("Warning: Failed to create image cache URL: \(error.localizedDescription)\n", stderr)
       }
     }
 
@@ -140,7 +185,7 @@ struct LinkPreviewRenderer {
   static func fetchMetadataWithCache(for url: URL, cacheEnabled: Bool) async throws
     -> LPLinkMetadata
   {
-    let metadataCacheURL = cacheURL(prefix: "metadata-", for: url, extension: "plist")
+    let metadataCacheURL = try cacheURL(prefix: "metadata-", for: url, extension: "plist")
 
     // Try to load from cache first
     if cacheEnabled && FileManager.default.fileExists(atPath: metadataCacheURL.path) {
@@ -154,7 +199,16 @@ struct LinkPreviewRenderer {
 
     // Suppress framework warnings
     let originalStderr = dup(STDERR_FILENO)
+    guard originalStderr != -1 else {
+      throw CacheError.stderrRedirectionFailed
+    }
+
     let devNull = open("/dev/null", O_WRONLY)
+    guard devNull != -1 else {
+      close(originalStderr)
+      throw CacheError.stderrRedirectionFailed
+    }
+
     dup2(devNull, STDERR_FILENO)
     close(devNull)
 
@@ -180,14 +234,19 @@ struct LinkPreviewRenderer {
   }
 
   @MainActor
-  static func renderAndSave(metadata: LPLinkMetadata, to cacheURL: URL) async throws {
+  static func renderAndSave(
+    metadata: LPLinkMetadata,
+    to cacheURL: URL,
+    size: CGSize,
+    delay: UInt64
+  ) async throws {
     let linkView = LPLinkView(metadata: metadata)
-    let size = CGRect(x: 0, y: 0, width: 300, height: 150)
-    linkView.frame = size
+    let rect = CGRect(origin: .zero, size: size)
+    linkView.frame = rect
 
     // Create a window to host the view
     let window = NSWindow(
-      contentRect: size,
+      contentRect: rect,
       styleMask: [],
       backing: .buffered,
       defer: false
@@ -195,8 +254,8 @@ struct LinkPreviewRenderer {
     window.contentView = linkView
     window.orderBack(nil)
 
-    // Wait a moment for rendering
-    try await Task.sleep(nanoseconds: 500_000_000)
+    // Wait for rendering to complete
+    try await Task.sleep(nanoseconds: delay)
 
     let imageRep = linkView.bitmapImageRepForCachingDisplay(in: linkView.bounds)
     guard let bitmap = imageRep else {
@@ -211,14 +270,17 @@ struct LinkPreviewRenderer {
     try data.write(to: cacheURL)
   }
 
-  static func cacheURL(prefix: String, for url: URL, extension: String = "png") -> URL {
-    let hash = SHA256.hash(data: url.absoluteString.data(using: .utf8)!)
+  static func cacheURL(prefix: String, for url: URL, extension: String = "png") throws -> URL {
+    guard let urlData = url.absoluteString.data(using: .utf8) else {
+      throw CacheError.invalidURLEncoding
+    }
+    let hash = SHA256.hash(data: urlData)
     let hashString = prefix + hash.compactMap { String(format: "%02x", $0) }.joined()
 
     let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
       .appendingPathComponent("link-previews")
 
-    try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
 
     return cacheDir.appendingPathComponent("\(hashString).\(`extension`)")
   }
@@ -236,27 +298,51 @@ enum RenderError: Error, LocalizedError {
   }
 }
 
-struct Response: Codable {
-  let preview: String?
-  let error: String?
-  let title: String?
-  let url: String?
-  let image: String?
+enum CacheError: Error, LocalizedError {
+  case invalidURLEncoding
+  case directoryCreationFailed
+  case stderrRedirectionFailed
 
-  static func success(preview: String) -> Response {
-    Response(preview: preview, error: nil, title: nil, url: nil, image: nil)
+  var errorDescription: String? {
+    switch self {
+    case .invalidURLEncoding: return "Failed to encode URL as UTF-8"
+    case .directoryCreationFailed: return "Failed to create cache directory"
+    case .stderrRedirectionFailed: return "Failed to redirect stderr"
+    }
   }
+}
 
-  static func failure(error: String) -> Response {
-    Response(preview: nil, error: error, title: nil, url: nil, image: nil)
-  }
-
-  static func metadata(title: String?, url: String, image: String?) -> Response {
-    Response(preview: nil, error: nil, title: title, url: url, image: image)
-  }
+enum Response {
+  case preview(path: String)
+  case error(message: String)
+  case metadata(title: String?, url: String, image: String?)
 
   func output() {
-    let data = try! JSONEncoder().encode(self)
-    print(String(data: data, encoding: .utf8)!)
+    let dict: [String: Any?]
+
+    switch self {
+    case .preview(let path):
+      dict = ["preview": path, "error": nil, "title": nil, "url": nil, "image": nil]
+    case .error(let message):
+      dict = ["preview": nil, "error": message, "title": nil, "url": nil, "image": nil]
+    case .metadata(let title, let url, let image):
+      dict = ["preview": nil, "error": nil, "title": title, "url": url, "image": image]
+    }
+
+    // Filter out nil values and encode
+    let filteredDict = dict.compactMapValues { $0 }
+
+    do {
+      let jsonData = try JSONSerialization.data(withJSONObject: filteredDict, options: [])
+      if let jsonString = String(data: jsonData, encoding: .utf8) {
+        print(jsonString)
+      } else {
+        fputs("Error: Failed to convert JSON data to string\n", stderr)
+        exit(1)
+      }
+    } catch {
+      fputs("Error: Failed to encode response as JSON: \(error.localizedDescription)\n", stderr)
+      exit(1)
+    }
   }
 }
