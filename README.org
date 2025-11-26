@@ -35,18 +35,6 @@ Returns:
 
 #+begin_src json
   {
-    "preview": "/path/to/preview.png"
+    "preview": "path/to/preview.png"
   }
-#+end_src
-
-** Get metadata
-
-#+begin_src sh
-rinku https://soundcloud.com/shehackedyou
-#+end_src
-
-Returns:
-
-#+begin_src json
-  {"url":"https://soundcloud.com/shehackedyou","image":"path/to/thumbnail.png","title":"she hacked you"}
 #+end_src
