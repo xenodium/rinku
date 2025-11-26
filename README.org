@@ -9,10 +9,26 @@ A macOS command-line utility for fetching link previews and metadata from URLs:
 
 * Usage
 
+** Render preview image
+
+#+begin_src sh
+  rinku --render https://soundcloud.com/shehackedyou/glaceux
+#+end_src
+
+Returns:
+
+#+begin_src json
+  {
+    "preview": "path/to/preview.png"
+  }
+#+end_src
+
+[[https://soundcloud.com/shehackedyou/glaceux][file:preview.png]]
+
 ** Fetch metadata
 
 #+begin_src sh
-rinku https://soundcloud.com/shehackedyou
+  rinku https://soundcloud.com/shehackedyou
 #+end_src
 
 Returns:
@@ -22,19 +38,5 @@ Returns:
     "title": "glaceux",
     "url": "https://soundcloud.com/shehackedyou",
     "image": "path/to/preview.png"
-  }
-#+end_src
-
-** Render preview image
-
-#+begin_src sh
-rinku --render https://soundcloud.com/shehackedyou
-#+end_src
-
-Returns:
-
-#+begin_src json
-  {
-    "preview": "path/to/preview.png"
   }
 #+end_src
