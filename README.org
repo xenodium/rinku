@@ -23,7 +23,7 @@ Returns:
   }
 #+end_src
 
-[[https://soundcloud.com/shehackedyou/glaceux][file:preview.png]]
+#+HTML: <a href="https://soundcloud.com/shehackedyou/glaceux"><img src="preview.png" alt="Rendered preview of SoundCloud link" /></a>
 
 ** Fetch metadata
 
