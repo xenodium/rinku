@@ -18,7 +18,11 @@ rinku https://soundcloud.com/shehackedyou
 Returns:
 
 #+begin_src json
-{"title":"glaceux","url":"https://soundcloud.com/shehackedyou","image":"path/to/preview.png"}
+  {
+    "title": "glaceux",
+    "url": "https://soundcloud.com/shehackedyou",
+    "image": "path/to/preview.png"
+  }
 #+end_src
 
 ** Render preview image
@@ -30,7 +34,9 @@ rinku --render https://soundcloud.com/shehackedyou
 Returns:
 
 #+begin_src json
-{"preview":"/path/to/preview.png"}
+  {
+    "preview": "/path/to/preview.png"
+  }
 #+end_src
 
 ** Get metadata
