@@ -244,7 +244,7 @@ struct LinkPreviewRenderer {
     let rect = CGRect(origin: .zero, size: size)
     linkView.frame = rect
 
-    // Create a window to host the view
+    // Create a window to momentarily host the view
     let window = NSWindow(
       contentRect: rect,
       styleMask: [],
