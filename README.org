@@ -1,10 +1,6 @@
-#+TITLE: rinku
-
-A macOS command-line utility for fetching link previews and metadata from URLs.
-
 * Rinku (リンク) /rin-ku/ [Japanese: [[https://jisho.org/search/%E3%83%AA%E3%83%B3%E3%82%AF][link]]]
 
-A macOS command-line utility using [[https://developer.apple.com/documentation/linkpresentation][LinkPresentation]] framework to:
+A macOS command-line utility for fetching link previews and metadata from URLs:
 
 - Extract metadata (title, URL, image) from web links.
 - Render visual link previews as PNG images.
