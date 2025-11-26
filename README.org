@@ -1,0 +1,49 @@
+#+TITLE: rinku
+
+A macOS command-line utility for fetching link previews and metadata from URLs.
+
+* Rinku (リンク) /rin-ku/ [Japanese: [[https://jisho.org/search/%E3%83%AA%E3%83%B3%E3%82%AF][link]]]
+
+A macOS command-line utility using [[https://developer.apple.com/documentation/linkpresentation][LinkPresentation]] framework to:
+
+- Extract metadata (title, URL, image) from web links.
+- Render visual link previews as PNG images.
+- Cache results for faster subsequent lookups.
+- Return details as JSON.
+
+* Usage
+
+** Fetch metadata
+
+#+begin_src sh
+rinku https://soundcloud.com/shehackedyou
+#+end_src
+
+Returns JSON with title, URL, and cached image path:
+#+begin_src json
+{"title":"glaceux","url":"https://soundcloud.com/shehackedyou","image":"path/to/preview.png"}
+#+end_src
+
+** Render preview image
+
+#+begin_src sh
+rinku --render https://soundcloud.com/shehackedyou
+#+end_src
+
+Returns:
+
+#+begin_src json
+{"preview":"/path/to/preview.png"}
+#+end_src
+
+** Get metadata
+
+#+begin_src sh
+rinku https://soundcloud.com/shehackedyou
+#+end_src
+
+Returns:
+
+#+begin_src json
+  {"url":"https://soundcloud.com/shehackedyou","image":"path/to/thumbnail.png","title":"she hacked you"}
+#+end_src
