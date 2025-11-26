@@ -15,7 +15,8 @@ A macOS command-line utility for fetching link previews and metadata from URLs:
 rinku https://soundcloud.com/shehackedyou
 #+end_src
 
-Returns JSON with title, URL, and cached image path:
+Returns:
+
 #+begin_src json
 {"title":"glaceux","url":"https://soundcloud.com/shehackedyou","image":"path/to/preview.png"}
 #+end_src
