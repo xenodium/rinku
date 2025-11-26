@@ -32,6 +32,8 @@ struct LinkPreviewRenderer {
     var renderWidth: CGFloat = 300
     var renderHeight: CGFloat = 150
 
+    let validFlags = ["--no-cache", "--render", "--width", "--height"]
+
     if let index = arguments.firstIndex(of: "--no-cache") {
       cacheEnabled = false
       arguments.remove(at: index)
@@ -56,6 +58,15 @@ struct LinkPreviewRenderer {
         renderHeight = CGFloat(height)
         arguments.remove(at: index)
       }
+    }
+
+    // Check for unknown flags
+    if let unknownFlag = arguments.first(where: { $0.hasPrefix("--") }) {
+      Response.error(
+        message:
+          "Unknown flag '\(unknownFlag)'. Valid flags are: \(validFlags.joined(separator: ", "))"
+      ).output()
+      exit(1)
     }
 
     guard !arguments.isEmpty else {
