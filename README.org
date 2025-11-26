@@ -7,6 +7,14 @@ A macOS command-line utility for fetching link previews and metadata from URLs:
 - Cache results for faster subsequent lookups.
 - Return details as JSON.
 
+* Installation
+
+Via Homebrew:
+
+#+begin_src sh
+  brew install xenodium/rinku/rinku
+#+end_src
+
 * Usage
 
 ** Render preview image
