@@ -12,7 +12,7 @@ A macOS command-line utility for fetching link previews and metadata from URLs:
 ** Render preview image
 
 #+begin_src sh
-  rinku --render https://soundcloud.com/shehackedyou/glaceux
+  rinku --render https://soundcloud.com/shehackedyou
 #+end_src
 
 Returns:
@@ -23,7 +23,7 @@ Returns:
   }
 #+end_src
 
-#+HTML: <a href="https://soundcloud.com/shehackedyou/glaceux"><img src="https://github.com/xenodium/rinku/blob/main/render.png?raw=true" width="300px" alt="Rendered preview of SoundCloud link" /></a>
+#+HTML: <a href="https://soundcloud.com/shehackedyou"><img src="https://github.com/xenodium/rinku/blob/main/render.png?raw=true" width="300px" alt="Rendered preview of SoundCloud link" /></a>
 
 ** Fetch metadata
 
@@ -35,10 +35,10 @@ Returns:
 
 #+begin_src json
   {
-    "title": "glaceux",
+    "title": "she hacked you",
     "url": "https://soundcloud.com/shehackedyou",
     "image": "path/to/preview.png"
   }
 #+end_src
 
-#+HTML: <a href="https://soundcloud.com/shehackedyou/glaceux"><img src="https://github.com/xenodium/rinku/blob/main/thumbnail.png?raw=true" width="300px" alt="Metadata thumbnail of SoundCloud link" /></a>
+#+HTML: <a href="https://soundcloud.com/shehackedyou"><img src="https://github.com/xenodium/rinku/blob/main/thumbnail.png?raw=true" width="300px" alt="Metadata thumbnail of SoundCloud link" /></a>
