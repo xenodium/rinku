@@ -31,7 +31,6 @@ struct LinkPreviewRenderer {
     var renderEnabled = false
     var renderWidth: CGFloat = 300
     var renderHeight: CGFloat = 150
-    var renderDelay: UInt64 = 500_000_000  // 500ms in nanoseconds
 
     if let index = arguments.firstIndex(of: "--no-cache") {
       cacheEnabled = false
@@ -59,17 +58,9 @@ struct LinkPreviewRenderer {
       }
     }
 
-    if let index = arguments.firstIndex(of: "--render-delay") {
-      arguments.remove(at: index)
-      if index < arguments.count, let delayMs = UInt64(arguments[index]) {
-        renderDelay = delayMs * 1_000_000  // Convert ms to nanoseconds
-        arguments.remove(at: index)
-      }
-    }
-
     guard !arguments.isEmpty else {
       print(
-        "Usage: \(CommandLine.arguments[0]) [--no-cache] [--render] [--width N] [--height N] [--render-delay MS] <URL>"
+        "Usage: \(CommandLine.arguments[0]) [--no-cache] [--render] [--width N] [--height N] <URL>"
       )
       exit(1)
     }
@@ -84,8 +75,7 @@ struct LinkPreviewRenderer {
         url: url,
         cacheEnabled: cacheEnabled,
         renderEnabled: renderEnabled,
-        renderSize: CGSize(width: renderWidth, height: renderHeight),
-        renderDelay: renderDelay
+        renderSize: CGSize(width: renderWidth, height: renderHeight)
       )
     }
 
@@ -97,8 +87,7 @@ struct LinkPreviewRenderer {
     url: URL,
     cacheEnabled: Bool,
     renderEnabled: Bool,
-    renderSize: CGSize,
-    renderDelay: UInt64
+    renderSize: CGSize
   ) async {
     if renderEnabled {
       do {
@@ -111,8 +100,7 @@ struct LinkPreviewRenderer {
         }
 
         let metadata = try await fetchMetadataWithCache(for: url, cacheEnabled: cacheEnabled)
-        try await renderAndSave(
-          metadata: metadata, to: cacheURL, size: renderSize, delay: renderDelay)
+        try await renderAndSave(metadata: metadata, to: cacheURL, size: renderSize)
         Response.preview(path: cacheURL.path).output()
         exit(0)
       } catch {
@@ -237,8 +225,7 @@ struct LinkPreviewRenderer {
   static func renderAndSave(
     metadata: LPLinkMetadata,
     to cacheURL: URL,
-    size: CGSize,
-    delay: UInt64
+    size: CGSize
   ) async throws {
     let linkView = LPLinkView(metadata: metadata)
     let rect = CGRect(origin: .zero, size: size)
@@ -254,8 +241,8 @@ struct LinkPreviewRenderer {
     window.contentView = linkView
     window.orderBack(nil)
 
-    // Wait for rendering to complete
-    try await Task.sleep(nanoseconds: delay)
+    // Force layout to complete synchronously
+    linkView.layoutSubtreeIfNeeded()
 
     let imageRep = linkView.bitmapImageRepForCachingDisplay(in: linkView.bounds)
     guard let bitmap = imageRep else {
