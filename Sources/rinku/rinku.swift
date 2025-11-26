@@ -70,8 +70,9 @@ struct LinkPreviewRenderer {
     }
 
     guard !arguments.isEmpty else {
+      let programName = URL(fileURLWithPath: CommandLine.arguments[0]).lastPathComponent
       print(
-        "Usage: \(CommandLine.arguments[0]) [--no-cache] [--render] [--width N] [--height N] <URL>"
+        "Usage: \(programName) [--no-cache] [--render] [--width N] [--height N] <URL>"
       )
       exit(1)
     }
