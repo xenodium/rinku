@@ -65,8 +65,21 @@ struct LinkPreviewRenderer {
       exit(1)
     }
 
-    guard let url = URL(string: arguments[0]) else {
-      Response.error(message: "Invalid URL").output()
+    let urlString = arguments[0]
+
+    // Check if user forgot to use -- for flags
+    if urlString.hasPrefix("-") && !urlString.hasPrefix("--") {
+      Response.error(
+        message:
+          "Invalid flag '\(urlString)'. Did you mean '--\(urlString.dropFirst())'?"
+      ).output()
+      exit(1)
+    }
+
+    guard let url = URL(string: urlString), url.scheme != nil else {
+      Response.error(
+        message: "Invalid URL: '\(urlString)'. URL must include a scheme (e.g., https://)."
+      ).output()
       exit(1)
     }
 
