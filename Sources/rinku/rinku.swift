@@ -91,7 +91,7 @@ struct LinkPreviewRenderer {
   ) async {
     if renderEnabled {
       do {
-        let cacheURL = try cacheURL(prefix: "render-", for: url)
+        let cacheURL = try cacheURL(prefix: "render-", for: url, size: renderSize)
 
         // Check if cached version exists
         if cacheEnabled && FileManager.default.fileExists(atPath: cacheURL.path) {
@@ -257,12 +257,21 @@ struct LinkPreviewRenderer {
     try data.write(to: cacheURL)
   }
 
-  static func cacheURL(prefix: String, for url: URL, extension: String = "png") throws -> URL {
-    guard let urlData = url.absoluteString.data(using: .utf8) else {
+  static func cacheURL(prefix: String, for url: URL, size: CGSize? = nil, extension: String = "png")
+    throws -> URL
+  {
+    var cacheKey = prefix + url.absoluteString
+
+    if let size = size {
+      cacheKey += "-\(Int(size.width))x\(Int(size.height))"
+    }
+
+    guard let keyData = cacheKey.data(using: .utf8) else {
       throw CacheError.invalidURLEncoding
     }
-    let hash = SHA256.hash(data: urlData)
-    let hashString = prefix + hash.compactMap { String(format: "%02x", $0) }.joined()
+
+    let hash = SHA256.hash(data: keyData)
+    let hashString = hash.compactMap { String(format: "%02x", $0) }.joined()
 
     let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
       .appendingPathComponent("link-previews")
