@@ -349,11 +349,11 @@ enum Response {
 
     switch self {
     case .preview(let path):
-      dict = ["preview": path, "error": nil, "title": nil, "url": nil, "image": nil]
+      dict = ["image": path]
     case .error(let message):
-      dict = ["preview": nil, "error": message, "title": nil, "url": nil, "image": nil]
+      dict = ["error": message]
     case .metadata(let title, let url, let image):
-      dict = ["preview": nil, "error": nil, "title": title, "url": url, "image": image]
+      dict = ["title": title, "url": url, "image": image]
     }
 
     // Filter out nil values and encode
