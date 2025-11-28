@@ -94,9 +94,15 @@ struct LinkPreviewRenderer {
       exit(1)
     }
 
-    guard let url = URL(string: urlString), url.scheme != nil else {
+    // Automatically prepend https:// if no scheme is present
+    var processedURL = urlString
+    if !urlString.contains("://") {
+      processedURL = "https://\(urlString)"
+    }
+
+    guard let url = URL(string: processedURL), url.scheme != nil else {
       Response.error(
-        message: "Invalid URL: '\(urlString)'. URL must include a scheme (e.g., https://)."
+        message: "Invalid URL: '\(urlString)'. URL must be a valid URL."
       ).output()
       exit(1)
     }
