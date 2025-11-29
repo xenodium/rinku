@@ -20,7 +20,7 @@ Via Homebrew:
 ** Render preview image
 
 #+begin_src sh
-  rinku --render https://soundcloud.com/shehackedyou
+  rinku --preview https://soundcloud.com/shehackedyou
 #+end_src
 
 Returns:

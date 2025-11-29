@@ -32,14 +32,14 @@ struct LinkPreviewRenderer {
     var renderWidth: CGFloat?
     var renderHeight: CGFloat?
 
-    let validFlags = ["--no-cache", "--render", "--width", "--height"]
+    let validFlags = ["--no-cache", "--preview", "--width", "--height"]
 
     if let index = arguments.firstIndex(of: "--no-cache") {
       cacheEnabled = false
       arguments.remove(at: index)
     }
 
-    if let index = arguments.firstIndex(of: "--render") {
+    if let index = arguments.firstIndex(of: "--preview") {
       renderEnabled = true
       arguments.remove(at: index)
     }
@@ -69,16 +69,17 @@ struct LinkPreviewRenderer {
       exit(1)
     }
 
-    // Check if --width or --height used without --render
+    // Check if --width or --height used without --preview
     if !renderEnabled && (renderWidth != nil || renderHeight != nil) {
-      Response.error(message: "The --width and --height flags require --render to be set.").output()
+      Response.error(message: "The --width and --height flags require --preview to be set.")
+        .output()
       exit(1)
     }
 
     guard !arguments.isEmpty else {
       let programName = URL(fileURLWithPath: CommandLine.arguments[0]).lastPathComponent
       print(
-        "Usage: \(programName) [--no-cache] [--render] [--width N] [--height N] <URL>"
+        "Usage: \(programName) [--no-cache] [--preview] [--width N] [--height N] <URL>"
       )
       exit(1)
     }
